@@ -9,8 +9,28 @@ from pydantic import BaseModel, create_model
 from pydantic.version import VERSION as P_VERSION
 from starlette.datastructures import UploadFile
 from typing_extensions import Annotated, Literal, get_args, get_origin
+from pydantic.v1.utils import update_not_none
 PYDANTIC_VERSION = P_VERSION
 PYDANTIC_V2 = PYDANTIC_VERSION.startswith('2.')
+
+def _model_rebuild(cls: Type[BaseModel]) -> None:
+    """Rebuild a pydantic model, updating its configuration.
+    
+    This is a compatibility function for Pydantic v2 that mimics the behavior of
+    the original _model_rebuild function from Pydantic v1.
+    """
+    if not PYDANTIC_V2:
+        from pydantic.main import _model_rebuild as v1_model_rebuild
+        return v1_model_rebuild(cls)
+    
+    # For Pydantic v2, we need to force model rebuild by clearing caches
+    if hasattr(cls, '__pydantic_validator__'):
+        delattr(cls, '__pydantic_validator__')
+    if hasattr(cls, '__pydantic_serializer__'):
+        delattr(cls, '__pydantic_serializer__')
+    if hasattr(cls, '__pydantic_core_schema__'):
+        delattr(cls, '__pydantic_core_schema__')
+    cls.__pydantic_complete__ = False
 sequence_annotation_to_type = {Sequence: list, List: list, list: list, Tuple: tuple, tuple: tuple, Set: set, set: set, FrozenSet: frozenset, frozenset: frozenset, Deque: deque, deque: deque}
 sequence_types = tuple(sequence_annotation_to_type.keys())
 if PYDANTIC_V2:
