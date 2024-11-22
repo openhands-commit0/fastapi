@@ -461,6 +461,8 @@ if PYDANTIC_V2:
             model.model_validators = []
         if validate_refs not in model.model_validators:
             model.model_validators.append(validate_refs)
+        # Force model rebuild
+        _model_rebuild(model)
 else:
     # Use Pydantic v1 model rebuild to handle circular references
     _model_rebuild(Schema)
