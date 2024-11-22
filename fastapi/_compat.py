@@ -89,7 +89,10 @@ def _model_rebuild(cls: Type[BaseModel]) -> None:
                 ]
         return values
     
-    cls.model_validators = [validate_refs]
+    # Add the validator to the model
+    if not hasattr(cls, 'model_validators'):
+        cls.model_validators = []
+    cls.model_validators.append(validate_refs)
     
     return cls
 sequence_annotation_to_type = {Sequence: list, List: list, list: list, Tuple: tuple, tuple: tuple, Set: set, set: set, FrozenSet: frozenset, frozenset: frozenset, Deque: deque, deque: deque}
