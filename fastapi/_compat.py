@@ -34,7 +34,6 @@ def _model_rebuild(cls: Type[BaseModel]) -> None:
     
     # Use Pydantic v1 create_model to handle circular references
     from pydantic.v1.main import create_model
-    from pydantic.v1.main import _model_rebuild as v1_model_rebuild
     
     # Create a new model with the same configuration
     new_model = create_model(
@@ -45,10 +44,7 @@ def _model_rebuild(cls: Type[BaseModel]) -> None:
         __cls_kwargs__=cls.__dict__.get('__cls_kwargs__', {}),
     )
     
-    # Rebuild the model using Pydantic v1
-    v1_model_rebuild(new_model)
-    
-    # Copy the rebuilt model's attributes back to the original class
+    # Copy the model's attributes back to the original class
     for attr in ('__fields__', '__validators__', '__pre_root_validators__', '__post_root_validators__',
                 '__config__', '__schema_cache__', '__json_encoder__', '__custom_root_type__',
                 '__private_attributes__', '__slots__', '__class_vars__', '__fields_set__'):
