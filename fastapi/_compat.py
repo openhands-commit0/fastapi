@@ -65,6 +65,7 @@ def _model_rebuild(cls: Type[BaseModel]) -> None:
         for field_name, field_value in values.items():
             if isinstance(field_value, dict):
                 if '$ref' in field_value:
+                    from fastapi.openapi.models import Reference
                     values[field_name] = Reference(**field_value)
                 else:
                     values[field_name] = cls(**field_value)
