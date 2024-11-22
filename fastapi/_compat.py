@@ -32,26 +32,9 @@ def _model_rebuild(cls: Type[BaseModel]) -> None:
         delattr(cls, '__pydantic_core_schema__')
     cls.__pydantic_complete__ = False
     
-    # Use Pydantic v1 create_model to handle circular references
-    from pydantic.v1.main import create_model
-    
-    # Create a new model with the same configuration
-    new_model = create_model(
-        cls.__name__,
-        __base__=cls,
-        __module__=cls.__module__,
-        __validators__=cls.__dict__.get('__validators__', {}),
-        __cls_kwargs__=cls.__dict__.get('__cls_kwargs__', {}),
-    )
-    
-    # Copy the model's attributes back to the original class
-    for attr in ('__fields__', '__validators__', '__pre_root_validators__', '__post_root_validators__',
-                '__config__', '__schema_cache__', '__json_encoder__', '__custom_root_type__',
-                '__private_attributes__', '__slots__', '__class_vars__', '__fields_set__'):
-        if hasattr(new_model, attr):
-            setattr(cls, attr, getattr(new_model, attr))
-    
-    return cls
+    # Use Pydantic v1 model rebuild to handle circular references
+    from pydantic.v1.main import _model_rebuild as v1_model_rebuild
+    return v1_model_rebuild(cls)
 sequence_annotation_to_type = {Sequence: list, List: list, list: list, Tuple: tuple, tuple: tuple, Set: set, set: set, FrozenSet: frozenset, frozenset: frozenset, Deque: deque, deque: deque}
 sequence_types = tuple(sequence_annotation_to_type.keys())
 if PYDANTIC_V2:
