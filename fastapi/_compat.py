@@ -42,6 +42,9 @@ def _model_rebuild(cls: Type[BaseModel]) -> None:
         return values
     
     cls.model_validators = [rebuild_model]
+    
+    # Force model rebuild
+    cls.model_rebuild()
 sequence_annotation_to_type = {Sequence: list, List: list, list: list, Tuple: tuple, tuple: tuple, Set: set, set: set, FrozenSet: frozenset, frozenset: frozenset, Deque: deque, deque: deque}
 sequence_types = tuple(sequence_annotation_to_type.keys())
 if PYDANTIC_V2:
