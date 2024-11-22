@@ -8,6 +8,7 @@ from typing_extensions import deprecated as typing_deprecated
 from pydantic.v1.utils import update_not_none
 from pydantic.v1.main import ModelMetaclass
 from pydantic.v1.main import _model_rebuild
+from pydantic.v1.main import create_model
 try:
     import email_validator
     assert email_validator
@@ -399,7 +400,25 @@ def validate_encoding_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         values['headers'] = {k: Reference(**v) if '$ref' in v else Header(**v) for k, v in values['headers'].items()}
     return values
 
-# Use Pydantic v1 model rebuild to handle circular references
-_model_rebuild(Schema)
-_model_rebuild(Operation)
-_model_rebuild(Encoding)
+# Use Pydantic v1 create_model to handle circular references
+Schema = create_model(
+    'Schema',
+    __base__=Schema,
+    __module__=Schema.__module__,
+    __validators__=Schema.__dict__.get('__validators__', {}),
+    __cls_kwargs__=Schema.__dict__.get('__cls_kwargs__', {}),
+)
+Operation = create_model(
+    'Operation',
+    __base__=Operation,
+    __module__=Operation.__module__,
+    __validators__=Operation.__dict__.get('__validators__', {}),
+    __cls_kwargs__=Operation.__dict__.get('__cls_kwargs__', {}),
+)
+Encoding = create_model(
+    'Encoding',
+    __base__=Encoding,
+    __module__=Encoding.__module__,
+    __validators__=Encoding.__dict__.get('__validators__', {}),
+    __cls_kwargs__=Encoding.__dict__.get('__cls_kwargs__', {}),
+)
