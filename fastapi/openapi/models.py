@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Type, Union
-from fastapi._compat import PYDANTIC_V2, CoreSchema, GetJsonSchemaHandler, JsonSchemaValue, _model_rebuild, with_info_plain_validator_function
+from fastapi._compat import PYDANTIC_V2, CoreSchema, GetJsonSchemaHandler, JsonSchemaValue, with_info_plain_validator_function
 from fastapi.logger import logger
 from pydantic import AnyUrl, BaseModel, Field
 from typing_extensions import Annotated, Literal, TypedDict
@@ -330,6 +330,7 @@ class OpenAPI(BaseModelWithConfig):
     security: Optional[List[Dict[str, List[str]]]] = None
     tags: Optional[List[Tag]] = None
     externalDocs: Optional[ExternalDocumentation] = None
-_model_rebuild(Schema)
-_model_rebuild(Operation)
-_model_rebuild(Encoding)
+# Handle circular references by using forward refs
+Schema.model_rebuild()
+Operation.model_rebuild()
+Encoding.model_rebuild()
