@@ -55,6 +55,28 @@ def _model_rebuild(cls: Type[BaseModel]) -> None:
         if hasattr(new_model, attr):
             setattr(cls, attr, getattr(new_model, attr))
     
+    # Add model validators to handle circular references
+    from pydantic import model_validator
+    
+    @model_validator(mode='before')
+    def validate_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(values, dict):
+            return values
+        for field_name, field_value in values.items():
+            if isinstance(field_value, dict):
+                if '$ref' in field_value:
+                    values[field_name] = Reference(**field_value)
+                else:
+                    values[field_name] = cls(**field_value)
+            elif isinstance(field_value, list):
+                values[field_name] = [
+                    Reference(**v) if isinstance(v, dict) and '$ref' in v else cls(**v) if isinstance(v, dict) else v
+                    for v in field_value
+                ]
+        return values
+    
+    cls.model_validators = [validate_refs]
+    
     return cls
 sequence_annotation_to_type = {Sequence: list, List: list, list: list, Tuple: tuple, tuple: tuple, Set: set, set: set, FrozenSet: frozenset, frozenset: frozenset, Deque: deque, deque: deque}
 sequence_types = tuple(sequence_annotation_to_type.keys())
