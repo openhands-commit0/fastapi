@@ -31,6 +31,17 @@ def _model_rebuild(cls: Type[BaseModel]) -> None:
     if hasattr(cls, '__pydantic_core_schema__'):
         delattr(cls, '__pydantic_core_schema__')
     cls.__pydantic_complete__ = False
+    
+    # Rebuild the model
+    from pydantic import model_validator
+    
+    @model_validator(mode='before')
+    def rebuild_model(cls, values):
+        if not isinstance(values, dict):
+            return values
+        return values
+    
+    cls.model_validators = [rebuild_model]
 sequence_annotation_to_type = {Sequence: list, List: list, list: list, Tuple: tuple, tuple: tuple, Set: set, set: set, FrozenSet: frozenset, frozenset: frozenset, Deque: deque, deque: deque}
 sequence_types = tuple(sequence_annotation_to_type.keys())
 if PYDANTIC_V2:
