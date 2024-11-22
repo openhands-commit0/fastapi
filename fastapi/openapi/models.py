@@ -401,24 +401,29 @@ def validate_encoding_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
     return values
 
 # Use Pydantic v1 create_model to handle circular references
-Schema = create_model(
-    'Schema',
-    __base__=Schema,
-    __module__=Schema.__module__,
-    __validators__=Schema.__dict__.get('__validators__', {}),
-    __cls_kwargs__=Schema.__dict__.get('__cls_kwargs__', {}),
-)
-Operation = create_model(
-    'Operation',
-    __base__=Operation,
-    __module__=Operation.__module__,
-    __validators__=Operation.__dict__.get('__validators__', {}),
-    __cls_kwargs__=Operation.__dict__.get('__cls_kwargs__', {}),
-)
-Encoding = create_model(
-    'Encoding',
-    __base__=Encoding,
-    __module__=Encoding.__module__,
-    __validators__=Encoding.__dict__.get('__validators__', {}),
-    __cls_kwargs__=Encoding.__dict__.get('__cls_kwargs__', {}),
-)
+if PYDANTIC_V2:
+    Schema = create_model(
+        'Schema',
+        __base__=Schema,
+        __module__=Schema.__module__,
+        __validators__=Schema.__dict__.get('__validators__', {}),
+        __cls_kwargs__=Schema.__dict__.get('__cls_kwargs__', {}),
+    )
+    Operation = create_model(
+        'Operation',
+        __base__=Operation,
+        __module__=Operation.__module__,
+        __validators__=Operation.__dict__.get('__validators__', {}),
+        __cls_kwargs__=Operation.__dict__.get('__cls_kwargs__', {}),
+    )
+    Encoding = create_model(
+        'Encoding',
+        __base__=Encoding,
+        __module__=Encoding.__module__,
+        __validators__=Encoding.__dict__.get('__validators__', {}),
+        __cls_kwargs__=Encoding.__dict__.get('__cls_kwargs__', {}),
+    )
+else:
+    _model_rebuild(Schema)
+    _model_rebuild(Operation)
+    _model_rebuild(Encoding)
