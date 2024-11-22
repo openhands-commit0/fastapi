@@ -5,6 +5,8 @@ from fastapi.logger import logger
 from pydantic import AnyUrl, BaseModel, Field, model_validator
 from typing_extensions import Annotated, Literal, TypedDict
 from typing_extensions import deprecated as typing_deprecated
+from pydantic.v1.utils import update_not_none
+from pydantic.v1.main import ModelMetaclass
 try:
     import email_validator
     assert email_validator
@@ -396,6 +398,7 @@ def validate_encoding_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         values['headers'] = {k: Reference(**v) if '$ref' in v else Header(**v) for k, v in values['headers'].items()}
     return values
 
-Schema.model_validators = [validate_schema_refs]
-Operation.model_validators = [validate_operation_refs]
-Encoding.model_validators = [validate_encoding_refs]
+# Use Pydantic v1 model metaclass to handle circular references
+Schema.__class__ = ModelMetaclass
+Operation.__class__ = ModelMetaclass
+Encoding.__class__ = ModelMetaclass
