@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Type, Union
 from fastapi._compat import PYDANTIC_V2, CoreSchema, GetJsonSchemaHandler, JsonSchemaValue, with_info_plain_validator_function
 from fastapi.logger import logger
-from pydantic import AnyUrl, BaseModel, Field
+from pydantic import AnyUrl, BaseModel, Field, model_validator
 from typing_extensions import Annotated, Literal, TypedDict
 from typing_extensions import deprecated as typing_deprecated
 try:
@@ -330,7 +330,72 @@ class OpenAPI(BaseModelWithConfig):
     security: Optional[List[Dict[str, List[str]]]] = None
     tags: Optional[List[Tag]] = None
     externalDocs: Optional[ExternalDocumentation] = None
-# Handle circular references by using forward refs
-Schema.model_rebuild()
-Operation.model_rebuild()
-Encoding.model_rebuild()
+# Handle circular references using model validators
+@model_validator(mode='before')
+def validate_schema_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(values, dict):
+        return values
+    if 'allOf' in values:
+        values['allOf'] = [v if isinstance(v, bool) else Schema(**v) for v in values['allOf']]
+    if 'anyOf' in values:
+        values['anyOf'] = [v if isinstance(v, bool) else Schema(**v) for v in values['anyOf']]
+    if 'oneOf' in values:
+        values['oneOf'] = [v if isinstance(v, bool) else Schema(**v) for v in values['oneOf']]
+    if 'not_' in values:
+        values['not_'] = values['not_'] if isinstance(values['not_'], bool) else Schema(**values['not_'])
+    if 'if_' in values:
+        values['if_'] = values['if_'] if isinstance(values['if_'], bool) else Schema(**values['if_'])
+    if 'then' in values:
+        values['then'] = values['then'] if isinstance(values['then'], bool) else Schema(**values['then'])
+    if 'else_' in values:
+        values['else_'] = values['else_'] if isinstance(values['else_'], bool) else Schema(**values['else_'])
+    if 'dependentSchemas' in values:
+        values['dependentSchemas'] = {k: v if isinstance(v, bool) else Schema(**v) for k, v in values['dependentSchemas'].items()}
+    if 'prefixItems' in values:
+        values['prefixItems'] = [v if isinstance(v, bool) else Schema(**v) for v in values['prefixItems']]
+    if 'items' in values:
+        if isinstance(values['items'], list):
+            values['items'] = [v if isinstance(v, bool) else Schema(**v) for v in values['items']]
+        else:
+            values['items'] = values['items'] if isinstance(values['items'], bool) else Schema(**values['items'])
+    if 'contains' in values:
+        values['contains'] = values['contains'] if isinstance(values['contains'], bool) else Schema(**values['contains'])
+    if 'properties' in values:
+        values['properties'] = {k: v if isinstance(v, bool) else Schema(**v) for k, v in values['properties'].items()}
+    if 'patternProperties' in values:
+        values['patternProperties'] = {k: v if isinstance(v, bool) else Schema(**v) for k, v in values['patternProperties'].items()}
+    if 'additionalProperties' in values:
+        values['additionalProperties'] = values['additionalProperties'] if isinstance(values['additionalProperties'], bool) else Schema(**values['additionalProperties'])
+    if 'propertyNames' in values:
+        values['propertyNames'] = values['propertyNames'] if isinstance(values['propertyNames'], bool) else Schema(**values['propertyNames'])
+    if 'unevaluatedItems' in values:
+        values['unevaluatedItems'] = values['unevaluatedItems'] if isinstance(values['unevaluatedItems'], bool) else Schema(**values['unevaluatedItems'])
+    if 'unevaluatedProperties' in values:
+        values['unevaluatedProperties'] = values['unevaluatedProperties'] if isinstance(values['unevaluatedProperties'], bool) else Schema(**values['unevaluatedProperties'])
+    if 'contentSchema' in values:
+        values['contentSchema'] = values['contentSchema'] if isinstance(values['contentSchema'], bool) else Schema(**values['contentSchema'])
+    return values
+
+@model_validator(mode='before')
+def validate_operation_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(values, dict):
+        return values
+    if 'requestBody' in values:
+        values['requestBody'] = Reference(**values['requestBody']) if '$ref' in values['requestBody'] else RequestBody(**values['requestBody'])
+    if 'responses' in values:
+        values['responses'] = {k: Reference(**v) if '$ref' in v else Response(**v) for k, v in values['responses'].items()}
+    if 'callbacks' in values:
+        values['callbacks'] = {k: Reference(**v) if '$ref' in v else {url: PathItem(**item) for url, item in v.items()} for k, v in values['callbacks'].items()}
+    return values
+
+@model_validator(mode='before')
+def validate_encoding_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(values, dict):
+        return values
+    if 'headers' in values:
+        values['headers'] = {k: Reference(**v) if '$ref' in v else Header(**v) for k, v in values['headers'].items()}
+    return values
+
+Schema.model_validators = [validate_schema_refs]
+Operation.model_validators = [validate_operation_refs]
+Encoding.model_validators = [validate_encoding_refs]
