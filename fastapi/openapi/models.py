@@ -455,10 +455,11 @@ if PYDANTIC_V2:
                 ]
         return values
     
-    # Add validators to the models
-    Schema.model_validators = [validate_refs]
-    Operation.model_validators = [validate_refs]
-    Encoding.model_validators = [validate_refs]
+    # Add the validator to the models
+    for model in (Schema, Operation, Encoding):
+        if not hasattr(model, 'model_validators'):
+            model.model_validators = []
+        model.model_validators.append(validate_refs)
 else:
     # Use Pydantic v1 model rebuild to handle circular references
     _model_rebuild(Schema)
