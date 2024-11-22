@@ -438,10 +438,14 @@ if PYDANTIC_V2:
                     # Check if the field is a reference to another model
                     if field_name in ('schema', 'schema_', 'items', 'contains', 'additionalProperties', 'propertyNames', 'unevaluatedItems', 'unevaluatedProperties', 'contentSchema'):
                         values[field_name] = Schema(**field_value)
-                    elif field_name in ('requestBody', 'responses', 'callbacks'):
-                        values[field_name] = Operation(**field_value)
-                    elif field_name in ('headers',):
-                        values[field_name] = Encoding(**field_value)
+                    elif field_name == 'requestBody':
+                        values[field_name] = RequestBody(**field_value)
+                    elif field_name == 'responses':
+                        values[field_name] = {k: Response(**v) for k, v in field_value.items()}
+                    elif field_name == 'callbacks':
+                        values[field_name] = {k: {url: PathItem(**item) for url, item in v.items()} for k, v in field_value.items()}
+                    elif field_name == 'headers':
+                        values[field_name] = {k: Header(**v) for k, v in field_value.items()}
                     else:
                         values[field_name] = cls(**field_value)
             elif isinstance(field_value, list):
