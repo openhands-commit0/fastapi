@@ -35,6 +35,10 @@ def _model_rebuild(cls: Type[BaseModel]) -> None:
     # Use Pydantic v1 model metaclass to handle circular references
     from pydantic.v1.main import ModelMetaclass
     cls.__class__ = ModelMetaclass
+    
+    # Force model rebuild
+    from pydantic.v1.main import _model_rebuild as v1_model_rebuild
+    v1_model_rebuild(cls)
 sequence_annotation_to_type = {Sequence: list, List: list, list: list, Tuple: tuple, tuple: tuple, Set: set, set: set, FrozenSet: frozenset, frozenset: frozenset, Deque: deque, deque: deque}
 sequence_types = tuple(sequence_annotation_to_type.keys())
 if PYDANTIC_V2:
