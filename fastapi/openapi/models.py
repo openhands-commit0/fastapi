@@ -459,7 +459,8 @@ if PYDANTIC_V2:
     for model in (Schema, Operation, Encoding):
         if not hasattr(model, 'model_validators'):
             model.model_validators = []
-        model.model_validators.append(validate_refs)
+        if validate_refs not in model.model_validators:
+            model.model_validators.append(validate_refs)
 else:
     # Use Pydantic v1 model rebuild to handle circular references
     _model_rebuild(Schema)
