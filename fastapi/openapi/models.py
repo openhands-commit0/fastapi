@@ -7,6 +7,7 @@ from typing_extensions import Annotated, Literal, TypedDict
 from typing_extensions import deprecated as typing_deprecated
 from pydantic.v1.utils import update_not_none
 from pydantic.v1.main import ModelMetaclass
+from pydantic.v1.main import _model_rebuild
 try:
     import email_validator
     assert email_validator
@@ -398,7 +399,7 @@ def validate_encoding_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         values['headers'] = {k: Reference(**v) if '$ref' in v else Header(**v) for k, v in values['headers'].items()}
     return values
 
-# Use Pydantic v1 model metaclass to handle circular references
-Schema.__class__ = ModelMetaclass
-Operation.__class__ = ModelMetaclass
-Encoding.__class__ = ModelMetaclass
+# Use Pydantic v1 model rebuild to handle circular references
+_model_rebuild(Schema)
+_model_rebuild(Operation)
+_model_rebuild(Encoding)
