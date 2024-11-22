@@ -20,6 +20,7 @@ if PYDANTIC_V2:
     from pydantic._internal._schema_generation_shared import GetJsonSchemaHandler as GetJsonSchemaHandler
     from pydantic._internal._typing_extra import eval_type_lenient
     from pydantic._internal._utils import lenient_issubclass as lenient_issubclass
+    from pydantic._internal._model_construction import _model_rebuild
     from pydantic.fields import FieldInfo
     from pydantic.json_schema import GenerateJsonSchema as GenerateJsonSchema
     from pydantic.json_schema import JsonSchemaValue as JsonSchemaValue
