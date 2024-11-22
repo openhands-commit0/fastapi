@@ -401,72 +401,54 @@ def validate_encoding_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
     return values
 
 # Handle circular references using model validators
-@model_validator(mode='before')
-def validate_schema_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-    if not isinstance(values, dict):
+if PYDANTIC_V2:
+    # Create new models with the same configuration
+    Schema = create_model(
+        'Schema',
+        __base__=Schema,
+        __module__=Schema.__module__,
+        __validators__=Schema.__dict__.get('__validators__', {}),
+        __cls_kwargs__=Schema.__dict__.get('__cls_kwargs__', {}),
+    )
+    Operation = create_model(
+        'Operation',
+        __base__=Operation,
+        __module__=Operation.__module__,
+        __validators__=Operation.__dict__.get('__validators__', {}),
+        __cls_kwargs__=Operation.__dict__.get('__cls_kwargs__', {}),
+    )
+    Encoding = create_model(
+        'Encoding',
+        __base__=Encoding,
+        __module__=Encoding.__module__,
+        __validators__=Encoding.__dict__.get('__validators__', {}),
+        __cls_kwargs__=Encoding.__dict__.get('__cls_kwargs__', {}),
+    )
+    
+    # Add model validators to handle circular references
+    @model_validator(mode='before')
+    def validate_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(values, dict):
+            return values
+        for field_name, field_value in values.items():
+            if isinstance(field_value, dict):
+                if '$ref' in field_value:
+                    values[field_name] = Reference(**field_value)
+                else:
+                    values[field_name] = cls(**field_value)
+            elif isinstance(field_value, list):
+                values[field_name] = [
+                    Reference(**v) if isinstance(v, dict) and '$ref' in v else cls(**v) if isinstance(v, dict) else v
+                    for v in field_value
+                ]
         return values
-    if 'allOf' in values:
-        values['allOf'] = [v if isinstance(v, bool) else Schema(**v) for v in values['allOf']]
-    if 'anyOf' in values:
-        values['anyOf'] = [v if isinstance(v, bool) else Schema(**v) for v in values['anyOf']]
-    if 'oneOf' in values:
-        values['oneOf'] = [v if isinstance(v, bool) else Schema(**v) for v in values['oneOf']]
-    if 'not_' in values:
-        values['not_'] = values['not_'] if isinstance(values['not_'], bool) else Schema(**values['not_'])
-    if 'if_' in values:
-        values['if_'] = values['if_'] if isinstance(values['if_'], bool) else Schema(**values['if_'])
-    if 'then' in values:
-        values['then'] = values['then'] if isinstance(values['then'], bool) else Schema(**values['then'])
-    if 'else_' in values:
-        values['else_'] = values['else_'] if isinstance(values['else_'], bool) else Schema(**values['else_'])
-    if 'dependentSchemas' in values:
-        values['dependentSchemas'] = {k: v if isinstance(v, bool) else Schema(**v) for k, v in values['dependentSchemas'].items()}
-    if 'prefixItems' in values:
-        values['prefixItems'] = [v if isinstance(v, bool) else Schema(**v) for v in values['prefixItems']]
-    if 'items' in values:
-        if isinstance(values['items'], list):
-            values['items'] = [v if isinstance(v, bool) else Schema(**v) for v in values['items']]
-        else:
-            values['items'] = values['items'] if isinstance(values['items'], bool) else Schema(**values['items'])
-    if 'contains' in values:
-        values['contains'] = values['contains'] if isinstance(values['contains'], bool) else Schema(**values['contains'])
-    if 'properties' in values:
-        values['properties'] = {k: v if isinstance(v, bool) else Schema(**v) for k, v in values['properties'].items()}
-    if 'patternProperties' in values:
-        values['patternProperties'] = {k: v if isinstance(v, bool) else Schema(**v) for k, v in values['patternProperties'].items()}
-    if 'additionalProperties' in values:
-        values['additionalProperties'] = values['additionalProperties'] if isinstance(values['additionalProperties'], bool) else Schema(**values['additionalProperties'])
-    if 'propertyNames' in values:
-        values['propertyNames'] = values['propertyNames'] if isinstance(values['propertyNames'], bool) else Schema(**values['propertyNames'])
-    if 'unevaluatedItems' in values:
-        values['unevaluatedItems'] = values['unevaluatedItems'] if isinstance(values['unevaluatedItems'], bool) else Schema(**values['unevaluatedItems'])
-    if 'unevaluatedProperties' in values:
-        values['unevaluatedProperties'] = values['unevaluatedProperties'] if isinstance(values['unevaluatedProperties'], bool) else Schema(**values['unevaluatedProperties'])
-    if 'contentSchema' in values:
-        values['contentSchema'] = values['contentSchema'] if isinstance(values['contentSchema'], bool) else Schema(**values['contentSchema'])
-    return values
-
-@model_validator(mode='before')
-def validate_operation_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-    if not isinstance(values, dict):
-        return values
-    if 'requestBody' in values:
-        values['requestBody'] = Reference(**values['requestBody']) if '$ref' in values['requestBody'] else RequestBody(**values['requestBody'])
-    if 'responses' in values:
-        values['responses'] = {k: Reference(**v) if '$ref' in v else Response(**v) for k, v in values['responses'].items()}
-    if 'callbacks' in values:
-        values['callbacks'] = {k: Reference(**v) if '$ref' in v else {url: PathItem(**item) for url, item in v.items()} for k, v in values['callbacks'].items()}
-    return values
-
-@model_validator(mode='before')
-def validate_encoding_refs(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-    if not isinstance(values, dict):
-        return values
-    if 'headers' in values:
-        values['headers'] = {k: Reference(**v) if '$ref' in v else Header(**v) for k, v in values['headers'].items()}
-    return values
-
-# Add validators to the models
-Schema.model_validators = [validate_schema_refs]
-Operation.model_validators = [validate_operation_refs]
-Encoding.model_validators = [validate_encoding_refs]
+    
+    # Add validators to the models
+    Schema.model_validators = [validate_refs]
+    Operation.model_validators = [validate_refs]
+    Encoding.model_validators = [validate_refs]
+else:
+    # Use Pydantic v1 model rebuild to handle circular references
+    _model_rebuild(Schema)
+    _model_rebuild(Operation)
+    _model_rebuild(Encoding)
