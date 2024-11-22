@@ -68,7 +68,16 @@ def _model_rebuild(cls: Type[BaseModel]) -> None:
                     from fastapi.openapi.models import Reference
                     values[field_name] = Reference(**field_value)
                 else:
-                    values[field_name] = cls(**field_value)
+                    # Check if the field is a reference to another model
+                    from fastapi.openapi.models import Schema, Operation, Encoding
+                    if field_name in ('schema', 'schema_', 'items', 'contains', 'additionalProperties', 'propertyNames', 'unevaluatedItems', 'unevaluatedProperties', 'contentSchema'):
+                        values[field_name] = Schema(**field_value)
+                    elif field_name in ('requestBody', 'responses', 'callbacks'):
+                        values[field_name] = Operation(**field_value)
+                    elif field_name in ('headers',):
+                        values[field_name] = Encoding(**field_value)
+                    else:
+                        values[field_name] = cls(**field_value)
             elif isinstance(field_value, list):
                 values[field_name] = [
                     Reference(**v) if isinstance(v, dict) and '$ref' in v else cls(**v) if isinstance(v, dict) else v
